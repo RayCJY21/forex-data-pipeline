@@ -1,0 +1,53 @@
+# ========================================
+# EC2 Setup (Amazon Linux 2)
+# ========================================
+
+# Update system packages
+sudo yum update -y
+
+# Install Git for version control
+sudo yum install -y git
+
+# Install Python 3 and pip
+sudo yum install -y python3
+
+# Ensure pip is upgraded and venv is available
+python3 -m ensurepip --upgrade
+
+# Create a virtual environment
+python3 -m venv env
+
+# Activate virtual environment (must do this every new terminal session)
+source env/bin/activate
+
+# ========================================
+# Project Setup
+# ========================================
+
+# Create base project folder and subfolders
+mkdir -p forex-data-pipeline/app/{producer,consumer,api,dashboard,ml} docker data db scripts
+
+# Initialize git repo
+cd forex-data-pipeline
+git init
+
+# Create common files
+touch README.md command.txt .gitignore requirements.txt
+
+# Add gitignore rules
+echo -e "__pycache__/\n*.pyc\nenv/\n*.env\n*.db\n*.log\n" > .gitignore
+
+# ========================================
+# Python Package Installation
+# ========================================
+
+# Activate the virtual environment again if not already active
+source env/bin/activate
+
+# Install Kafka client and HTTP client
+pip install kafka-python requests
+
+# Add more packages later for:
+# - PostgreSQL: psycopg2
+# - FastAPI: fastapi, uvicorn
+# - Streamlit: streamlit
