@@ -1,0 +1,10 @@
+  forex_producer:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.producer
+    depends_on:
+      - kafka
+    environment:
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC=${KAFKA_TOPIC}

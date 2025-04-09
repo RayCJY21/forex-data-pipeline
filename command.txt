@@ -45,7 +45,12 @@ echo -e "__pycache__/\n*.pyc\nenv/\n*.env\n*.db\n*.log\n" > .gitignore
 source env/bin/activate
 
 # Install Kafka client and HTTP client
-pip install kafka-python requests
+pip install python-dotenv websocket-client kafka-python
+
+# Docker:
+pip install aiokafka websockets aiohttp python-dotenv
+docker-compose -f docker/docker-compose.yml up --build forex_producer
+
 
 # Add more packages later for:
 # - PostgreSQL: psycopg2

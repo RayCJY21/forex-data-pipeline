@@ -5,3 +5,8 @@ env/
 *.db
 *.log
 
+.env
+__pycache__/
+*.pyc
+env/
+*.log

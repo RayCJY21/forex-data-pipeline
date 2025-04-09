@@ -1,0 +1,52 @@
+# import:
+1. os: Accesses environment variables(like API key).
+2. json: To encode/decode JSON messages for both WebSocket and Kafka.
+3. asyncio: Native Python async framework.
+4. websockets: async WebSocket client
+5. threading: Runs task in parallel with the main program, use in websocket connection.
+6. load_dotenv: Loads environment vairables from a .env file securely.
+7. AIOKafkaProducer: Async Kafka producer client from aiokafka
+
+--------------------------------------------------------------------------------------
+
+# Reads API key
+load_dotenv() -> load the .env file into environment.
+os.getenv("API") -> Fetches the API key securely from environment.
+
+--------------------------------------------------------------------------------------
+
+# Kafka Configuration:
+KAFKA_BROKER = os.getenv("KAFKA_BROKER", "kafka:9092") -> Points to the Kafka server.
+TOPIC_NAME = os.getenv("KAFKA_TOPIC", "forex_stream") -> Name of the Kafka topic where Forex messages will go.
+SYMBOLS = ["OANDA:EUR_USD", "OANDA:USD_JPY", "OANDA:GBP_USD", ... ] -> Sets the currency pairs to subscribe
+
+--------------------------------------------------------------------------------------
+
+# Defines an asynchronous function to handle the full lifecycle:
+Creates a Kafka producer:
+1. Connect to Kafka:
+	a. Create an AIOKafkaProducer object
+	b. Serialize values to JSON UTF-8 bytes: json.dumps().encode()
+	c. Start kafka connection: await producer.start()
+
+2. Connect to WebSocket
+	a. Constructs the WebSocket URI with API token
+	b. Establishes an asynchronous WebSocket connection to the specified uri.
+	(e.g., a real-time data stream), and ensures that the connection will be automatically closed when you're done — even if an error happens.
+		- Sends a WebSocket connection request to the server at the given uri.
+		- If successful, returns a WebSocket object (ws).
+		- Then use that object to send or receive message.
+
+3. Listen to messages and send them to Kafka
+	a. Sends a subscription message (in JSON format) for each forex pair you want to track
+		- The WebSocket will then start sending live price ticks for those symbols.
+		- The await allows other code to run (like handling another API call or incoming WebSocket message) while this one is waiting.
+	b. Starts an infinite async loop that waits for new WebSocket messages.
+		- "async for", it doesn’t block — it only reacts when a message arrives.
+	c. Parses each message into dict and only proceeds if the messgae contains "data". (since the message will contain "data" keyword)
+	d. "send_and_wait" is an async Kafka method:
+		- 1. Sends the message
+		- 2. Waits for acknowledgment from Kafka that it was received
+	e. Catches any runtime errors
+
+4. Cleanly shuts down the Kafka producer
