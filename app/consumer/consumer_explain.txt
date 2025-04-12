@@ -1,0 +1,60 @@
+# import:
+
+os:	Accesses environment variables (os.getenv)
+json:	Parses stringified Kafka messages into Python dictionaries
+asyncio:	Enables async/await syntax for non-blocking code
+asyncpg:	Async PostgreSQL driver – faster than psycopg2
+load_dotenv:	Loads .env file so secrets (like DB credentials) can be used safely
+AIOKafkaConsumer:	Kafka consumer client built for asyncio (non-blocking reads)
+
+DB_URL = DB_URL = os.getenv("POSTGRES_URL", "postgresql://postgres:postgres@postgres:5432/forex")
+    - postgresql://<user>:<password>@<host>:<port>/<database>
+
+KAFKA_BROKER = os.getenv("KAFKA_BROKER", "kafka:9092")
+    - Your Kafka server address
+
+TOPICS = ["forex_stream", "forex_candle"]
+    - forex_stream: Real-time price ticks
+    - forex_candle: OHLCV candle bars
+
+# Async Consumer Function:
+    1. conn = await asyncpg.connect(DB_URL)
+        - Opens a connection to PostgreSQL using asyncpg.
+        - "await" is required because it’s a non-blocking network call.
+
+    2. Create tick_data table and Create candle_data table
+        - SERIAL	A shortcut in PostgreSQL that automatically creates an auto-incrementing integer
+        - PRIMARY KEY	Makes id the unique identifier for each row
+
+    3. Setup Kafka consumer
+        - *TOPICS	Python feature: Will get each element in the list.(list unpacking)
+        - bootstrap_server is Kafka address
+        - value_deserializer	Converts bytes → string → JSON dict
+        - auto_offset_reset="latest" --> only receive new messages from now on.
+    4. Start connection using the above config
+
+
+# Asynchronously wait for the next Kafka messgae and process it when it arrives:
+    1. Waits for message from Kafka.
+        - msg.topic: The topic this message came from
+        - msg.value: Parsed JSON dict
+    2. Insert to tick_data Table:
+        a. If the message is from the forex_stream topic
+            - await for Asynchronous
+            - execute using asyncpg library, which support parameterized PostgreSQL
+        b. SQL Query
+            - insert new row to tick_data
+            - using placeholder to safely insert data(avoids SQL injection)
+    3. Insert to candle_data Table:
+        a. If the message is from the forex_candle topic
+            - await for Asynchronous
+            - execute using asyncpg library, which support parameterized PostgreSQL
+        b. SQL Query
+            - insert new row to candle_data
+            - using placeholder to safely insert data(avoids SQL injection)
+    4. Cleanup:
+        - stop Kafka consumer
+        - stop Postgres connection
+
+# Main Function Entry
+Starts consumer by running consume() inside an asyncio loop.

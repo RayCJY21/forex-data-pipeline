@@ -1,3 +1,36 @@
+version: '3.8'
+
+services:
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  postgres:
+    image: postgres:14
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: forex
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   forex_producer:
     build:
       context: ..
@@ -8,3 +41,40 @@
       - FINNHUB_API_KEY=${FINNHUB_API_KEY}
       - KAFKA_BROKER=${KAFKA_BROKER}
       - KAFKA_TOPIC=${KAFKA_TOPIC}
+
+  candle_producer:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.candle
+    depends_on:
+      - kafka
+    environment:
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_TOPIC_CANDLE=${KAFKA_TOPIC_CANDLE}
+
+  consumer:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.consumer
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/forex
+  
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/forex
+
+
+volumes:
+  pgdata:

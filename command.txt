@@ -48,11 +48,20 @@ source env/bin/activate
 pip install python-dotenv websocket-client kafka-python
 
 # Docker:
-pip install aiokafka websockets aiohttp python-dotenv
-docker-compose -f docker/docker-compose.yml up --build forex_producer
+pip install websockets aiohttp aiokafka python-dotenv requests asyncpg
+docker-compose -f docker/docker-compose.yml up --build
 
+# Streamlit:
+pip install streamlit plotly ta asyncpg
+docker-compose -f docker/docker-compose.yml up --build dashboard
 
-# Add more packages later for:
-# - PostgreSQL: psycopg2
-# - FastAPI: fastapi, uvicorn
-# - Streamlit: streamlit
+# Run to start
+docker-compose -f docker/docker-compose.yml up --build
+http://<your-ec2-public-ip>:8501
+
+    - PostgreSQL container
+    - Kafka + Zookeeper
+    - WebSocket tick producer
+    - REST-based candle producer
+    - Consumer writing to DB
+    - Streamlit dashboard on port 8501

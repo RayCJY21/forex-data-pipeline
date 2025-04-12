@@ -1,4 +1,10 @@
 websockets
 aiohttp
 aiokafka
+kafka-python
 python-dotenv
+requests
+asyncpg
+streamlit
+plotly
+ta

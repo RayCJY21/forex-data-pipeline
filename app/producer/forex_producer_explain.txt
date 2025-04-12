@@ -21,32 +21,45 @@ TOPIC_NAME = os.getenv("KAFKA_TOPIC", "forex_stream") -> Name of the Kafka topic
 SYMBOLS = ["OANDA:EUR_USD", "OANDA:USD_JPY", "OANDA:GBP_USD", ... ] -> Sets the currency pairs to subscribe
 
 --------------------------------------------------------------------------------------
+# Define function to subscribe and stream ticks
+1. This function is to:
+	- Uses the WebSocket connection (ws)
+	- Subscribes to all currency pairs
+	- Waits for messages from Finnhub
+	- Sends each tick to Kafka
+2. For each forex pair, send a subscribe command to Finnhub, Finnhub will start streaming live ticks for those symbols
+	Sends a subscription message (in JSON format) for each forex pair you want to track
+		- The WebSocket will then start sending live price ticks for those symbols.
+		- The await allows other code to run (like handling another API call or incoming WebSocket message) while this one is waiting.
+3. Starts an infinite async loop that waits for new WebSocket messages.
+	"async for", it doesn’t block — it only reacts when a message arrives.
+4. Parses each message into dict and only proceeds if the messgae contains "data". (since the message will contain "data" keyword)
+5. "send_and_wait" is an async Kafka method:
+		- Sends the message
+		- Waits for acknowledgment from Kafka that it was received
+
 
 # Defines an asynchronous function to handle the full lifecycle:
 Creates a Kafka producer:
+	- Initializes Kafka producer
+	- Connects to WebSocket
+	- Calls stream_ticks
+	- Keeps retrying on failure
+
 1. Connect to Kafka:
 	a. Create an AIOKafkaProducer object
 	b. Serialize values to JSON UTF-8 bytes: json.dumps().encode()
 	c. Start kafka connection: await producer.start()
 
-2. Connect to WebSocket
-	a. Constructs the WebSocket URI with API token
-	b. Establishes an asynchronous WebSocket connection to the specified uri.
-	(e.g., a real-time data stream), and ensures that the connection will be automatically closed when you're done — even if an error happens.
+2. Retry Loop for WebSocket
+	a. Tries to connect to Finnhub’s WebSocket
+		- Constructs the WebSocket URI with API token
+		- Establishes an asynchronous WebSocket connection to the specified uri.
 		- Sends a WebSocket connection request to the server at the given uri.
 		- If successful, returns a WebSocket object (ws).
 		- Then use that object to send or receive message.
-
-3. Listen to messages and send them to Kafka
-	a. Sends a subscription message (in JSON format) for each forex pair you want to track
-		- The WebSocket will then start sending live price ticks for those symbols.
-		- The await allows other code to run (like handling another API call or incoming WebSocket message) while this one is waiting.
-	b. Starts an infinite async loop that waits for new WebSocket messages.
-		- "async for", it doesn’t block — it only reacts when a message arrives.
-	c. Parses each message into dict and only proceeds if the messgae contains "data". (since the message will contain "data" keyword)
-	d. "send_and_wait" is an async Kafka method:
-		- 1. Sends the message
-		- 2. Waits for acknowledgment from Kafka that it was received
-	e. Catches any runtime errors
+	b. If connection is successful, call stream_ticks(ws, producer) to start streaming
+	c. If connection drops or errors out, it jumps to except
+3. Catches any runtime errors
 
 4. Cleanly shuts down the Kafka producer
